@@ -13,7 +13,7 @@ export class DocumentsService {
   async uploadFile(
     firmId: string,
     taskId: string,
-    file: Express.Multer.File,
+    file: any,
     uploadedBy: string,
     checklistItemId?: string,
   ) {
