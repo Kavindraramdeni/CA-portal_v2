@@ -2,7 +2,9 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/auth.store';
 
-const BASE_URL = '/api/v1';
+const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+const BASE_URL = isLocalHost ? '/api/v1' : 'https://ca-portal-v2.onrender.com/api/v1';
 
 export const api = axios.create({
   baseURL: BASE_URL,
