@@ -23,7 +23,7 @@ export class DocumentsController {
   @ApiConsumes('multipart/form-data')
   async clientUpload(
     @Param('token') token: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any,
     @Body('checklist_item_id') itemId: string,
   ) {
     const req = await this.svc.getDocumentRequest(token);
@@ -43,7 +43,7 @@ export class DocumentsController {
   @ApiConsumes('multipart/form-data')
   staffUpload(
     @Param('taskId') taskId: string,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFile() file: any,
     @Req() req: any,
   ) {
     return this.svc.uploadFile(req.user.firm_id, taskId, file, req.user.id);
