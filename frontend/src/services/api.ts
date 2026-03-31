@@ -2,8 +2,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/auth.store';
 
-type ViteImportMeta = ImportMeta & { env: Record<string, string | undefined> };
-const BASE_URL = (import.meta as ViteImportMeta).env.VITE_API_URL || '/api/v1';
+const BASE_URL = '/api/v1';
 
 export const api = axios.create({
   baseURL: BASE_URL,
