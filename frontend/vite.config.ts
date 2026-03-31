@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => ({
           vendor: ['react', 'react-dom', 'react-router-dom'],
           query:  ['@tanstack/react-query'],
           charts: ['recharts'],
-          ui:     ['lucide-react', 'clsx', 'tailwind-merge'],
+          ui:     ['lucide-react', 'clsx'],
           dates:  ['date-fns'],
         },
       },
