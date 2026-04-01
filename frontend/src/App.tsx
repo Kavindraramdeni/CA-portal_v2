@@ -30,7 +30,7 @@ import EmployeeDashboard from './pages/employee/Dashboard';
 import MyTasks from './pages/employee/MyTasks';
 import MyTimesheet from './pages/employee/MyTimesheet';
 
-const ADMIN_ROLES = ['partner', 'manager', 'senior', 'junior', 'article'];
+const ADMIN_ROLES = ['admin', 'partner', 'manager', 'senior', 'junior', 'article'];
 
 const ProtectedRoute: React.FC<{ roles?: string[] }> = ({ roles }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -45,7 +45,7 @@ const RootRedirect: React.FC = () => {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
   if (user.role === 'client') return <Navigate to="/client/dashboard" replace />;
-  if (['partner', 'manager'].includes(user.role)) return <Navigate to="/admin/dashboard" replace />;
+  if (['admin','partner', 'manager'].includes(user.role)) return <Navigate to="/admin/dashboard" replace />;
   return <Navigate to="/employee/dashboard" replace />;
 };
 
