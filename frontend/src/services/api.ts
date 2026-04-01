@@ -6,32 +6,30 @@ import { useAuthStore } from '../store/auth.store';
 const BASE_URL =
   import.meta.env.VITE_API_URL ||
   (window.location.hostname === 'localhost'
-    ? 'http://localhost:3001/api/v1'
+    ? '/api/v1'
     : 'https://ca-portal-v2.onrender.com/api/v1');
 
-// ─── AXIOS INSTANCE ─────────────────────────────────────────
+// ─── AXIOS INSTANCE ──────────────────────────────────────────
 export const api = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// ─── REQUEST INTERCEPTOR (attach token) ─────────────────────
+// ─── REQUEST INTERCEPTOR (Attach JWT) ─────────────────────────
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
-
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
   return config;
 });
 
-// ─── RESPONSE INTERCEPTOR ───────────────────────────────────
+// ─── RESPONSE INTERCEPTOR (Handle 401) ────────────────────────
 api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      console.log('🚨 401 → logging out');
+      console.log('🚨 Unauthorized → logging out');
 
       useAuthStore.getState().logout();
 
@@ -47,31 +45,65 @@ api.interceptors.response.use(
   }
 );
 
-// ─── AUTH ───────────────────────────────────────────────────
+// ─── AUTH API ────────────────────────────────────────────────
 export const authApi = {
-  login: (email: string, password: string) =>
-    api.post('/auth/login', { email, password }).then(r => r.data),
+  login: async (email: string, password: string) => {
+    const res = await api.post('/auth/login', { email, password });
+    return res.data;
+  },
 
-  getProfile: () =>
-    api.get('/auth/profile').then(r => r.data),
+  sendOtp: async (phone: string) => {
+    const res = await api.post('/auth/otp/send', { phone });
+    return res.data;
+  },
 
-  sendOtp: (phone: string) =>
-    api.post('/auth/otp/send', { phone }).then(r => r.data),
+  verifyOtp: async (phone: string, otp: string) => {
+    const res = await api.post('/auth/otp/verify', { phone, otp });
+    return res.data;
+  },
 
-  verifyOtp: (phone: string, otp: string) =>
-    api.post('/auth/otp/verify', { phone, otp }).then(r => r.data),
+  getProfile: async () => {
+    const res = await api.get('/auth/profile');
+    return res.data;
+  },
 };
 
-// ✅ IMPORTANT: THIS WAS MISSING → CAUSED BUILD ERROR
+// ─── TASKS ───────────────────────────────────────────────────
+export const tasksApi = {
+  getAll: () => api.get('/tasks').then(r => r.data),
+  getStats: () => api.get('/tasks/stats').then(r => r.data),
+  getOne: (id: string) => api.get(`/tasks/${id}`).then(r => r.data),
+  getHistory: (id: string) => api.get(`/tasks/${id}/history`).then(r => r.data),
+  create: (data: any) => api.post('/tasks', data).then(r => r.data),
+  update: (id: string, data: any) => api.put(`/tasks/${id}`, data).then(r => r.data),
+  delete: (id: string) => api.delete(`/tasks/${id}`).then(r => r.data),
+};
+
+// ─── CLIENTS ─────────────────────────────────────────────────
+export const clientsApi = {
+  getAll: () => api.get('/clients').then(r => r.data),
+  getStats: () => api.get('/clients/stats').then(r => r.data),
+  getOne: (id: string) => api.get(`/clients/${id}`).then(r => r.data),
+  create: (data: any) => api.post('/clients', data).then(r => r.data),
+};
+
+// ─── ANNOUNCEMENTS ───────────────────────────────────────────
+export const announcementsApi = {
+  getAll: () => api.get('/announcements').then(r => r.data),
+  create: (data: any) => api.post('/announcements', data).then(r => r.data),
+  delete: (id: string) => api.delete(`/announcements/${id}`).then(r => r.data),
+};
+
+// ─── NOTIFICATIONS ───────────────────────────────────────────
 export const notificationsApi = {
-  getUnread: () => api.get('/notifications').then(r => r.data),
+  getAll: () => api.get('/notifications').then(r => r.data),
   markRead: (ids: string[]) =>
     api.patch('/notifications/read', { ids }).then(r => r.data),
   markAllRead: () =>
     api.patch('/notifications/read-all').then(r => r.data),
 };
 
-// ─── USERS ──────────────────────────────────────────────────
+// ─── USERS ───────────────────────────────────────────────────
 export const usersApi = {
   getAll: () => api.get('/users').then(r => r.data),
   getCapacity: () => api.get('/users/capacity').then(r => r.data),
