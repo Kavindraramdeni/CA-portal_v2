@@ -24,7 +24,9 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       useAuthStore.getState().logout();
-      window.location.href = '/login';
+      if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+        window.location.href = '/login';
+      }
     }
     const msg = err.response?.data?.message || 'Something went wrong';
     toast.error(Array.isArray(msg) ? msg[0] : msg);
