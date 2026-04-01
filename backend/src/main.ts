@@ -17,6 +17,7 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const isProduction = configService.get('NODE_ENV') === 'production';
+  const frontendUrl = configService.get<string>('FRONTEND_URL');
 
   // ─── Security ───────────────────────────────────────────────
   app.use(helmet({
@@ -32,15 +33,40 @@ async function bootstrap() {
   }));
   app.use(compression());
 
-  // ─── CORS ───────────────────────────────────────────────────
-  const frontendUrl = configService.get<string>('FRONTEND_URL');
+  // ─── CORS (FIXED) ──────────────────────────────────────────────────
+  // ✅ Allow Vercel preview URLs, production URLs, and localhost
   app.enableCors({
-    origin: isProduction
-      ? [frontendUrl, `https://www.${frontendUrl?.replace('https://', '')}`]
-      : ['http://localhost:5173', 'http://localhost:3000'],
+    origin: (origin, callback) => {
+      // Allow requests without origin (mobile apps, same-origin requests)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Whitelist patterns
+      const allowedPatterns = [
+        /localhost:\d+$/,                          // localhost:3000, :5173, etc
+        /127\.0\.0\.1:\d+$/,                       // 127.0.0.1
+        /\.vercel\.app$/,                          // All Vercel deployments
+        new RegExp(`^${frontendUrl?.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`), // Exact match for FRONTEND_URL
+      ];
+
+      const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        if (!isProduction) {
+          // In dev, be lenient
+          callback(null, true);
+        } else {
+          callback(new Error(`CORS not allowed for origin: ${origin}`));
+        }
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    maxAge: 3600,
   });
 
   // ─── Global validation ──────────────────────────────────────
@@ -76,6 +102,7 @@ async function bootstrap() {
   logger.log(`🚀 CA Portal API running on port ${port}`);
   logger.log(`📚 Swagger: http://localhost:${port}/api/docs`);
   logger.log(`🌍 Environment: ${configService.get('NODE_ENV')}`);
+  logger.log(`✅ CORS enabled for: ${frontendUrl}`);
 }
 
 bootstrap().catch(err => {
