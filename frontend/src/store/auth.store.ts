@@ -6,9 +6,12 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
+  isHydrated: boolean;
+
   setAuth: (user: User, token: string) => void;
   logout: () => void;
   updateUser: (u: Partial<User>) => void;
+  setHydrated: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -17,10 +20,26 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       token: null,
       isAuthenticated: false,
-      setAuth: (user, token) => set({ user, token, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
-      updateUser: (u) => set((s) => ({ user: s.user ? { ...s.user, ...u } : null })),
+      isHydrated: false,
+
+      setAuth: (user, token) =>
+        set({ user, token, isAuthenticated: true }),
+
+      logout: () =>
+        set({ user: null, token: null, isAuthenticated: false }),
+
+      updateUser: (u) =>
+        set((s) => ({
+          user: s.user ? { ...s.user, ...u } : null,
+        })),
+
+      setHydrated: () => set({ isHydrated: true }),
     }),
-    { name: 'ca-portal-auth' },
+    {
+      name: 'ca-portal-auth',
+      onRehydrateStorage: () => (state) => {
+        state?.setHydrated();
+      },
+    },
   ),
 );
