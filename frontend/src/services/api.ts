@@ -2,9 +2,14 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuthStore } from '../store/auth.store';
 
+type ViteImportMeta = ImportMeta & { env?: Record<string, string | undefined> };
+const env = ((import.meta as ViteImportMeta).env || {}) as Record<string, string | undefined>;
+const configuredBaseUrl = env.VITE_API_URL?.trim();
+
 const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 const isLocalHost = host === 'localhost' || host === '127.0.0.1';
-const BASE_URL = isLocalHost ? '/api/v1' : 'https://ca-portal-v2.onrender.com/api/v1';
+const defaultBaseUrl = isLocalHost ? '/api/v1' : 'https://ca-portal-v2.onrender.com/api/v1';
+const BASE_URL = configuredBaseUrl || defaultBaseUrl;
 
 export const api = axios.create({
   baseURL: BASE_URL,
