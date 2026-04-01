@@ -63,7 +63,6 @@ async function bootstrap() {
     .setDescription('CA firm practice management API — v1')
     .setVersion('1.0')
     .addBearerAuth()
-    .addServer(`https://${configService.get('DOMAIN', 'localhost')}`)
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, document);
