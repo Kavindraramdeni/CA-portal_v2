@@ -8,8 +8,7 @@ const Users: React.FC = () => {
   const { data: capacity = [] } = useQuery({ queryKey: ['capacity'], queryFn: usersApi.getCapacity });
 
   const capMap = (capacity as any[]).reduce((m: any, u: any) => { m[u.id] = u; return m; }, {});
-  const roleOrder = ['partner','manager','senior','junior','article'];
-
+  const roleOrder = ['admin','partner','manager','senior','junior','article'];
   return (
     <div className="space-y-5">
       <div><h1 className="page-title">Staff Management</h1><p className="page-subtitle">{(users as any[]).length} staff members</p></div>
