@@ -1,5 +1,5 @@
 // ─── Enums ────────────────────────────────────────────────────
-export type UserRole = 'partner' | 'manager' | 'senior' | 'junior' | 'article' | 'client';
+export type UserRole = 'admin' | 'partner' | 'manager' | 'senior' | 'junior' | 'article' | 'client';
 
 export type TaskStatus =
   | 'yet_to_start' | 'documents_requested' | 'documents_partial'
