@@ -38,7 +38,7 @@ const AdminLayout: React.FC = () => {
   });
 
   const handleLogout = () => { logout(); navigate('/login'); };
-  const visibleNav = ADMIN_NAV.filter(n => n.roles.includes(user?.role || ''));
+ const visibleNav = user?.role === 'admin' ? ADMIN_NAV : ADMIN_NAV.filter(n => n.roles.includes(user?.role || ''));
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
