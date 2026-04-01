@@ -167,6 +167,33 @@ const LoginPage: React.FC = () => {
       </div>
     </div>
   );
+  const handleEmailLogin = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setLoading(true);
+
+  try {
+    const data = await authApi.login(email, password);
+
+    console.log('LOGIN RESPONSE:', data);
+
+    // ✅ Set auth FIRST
+    setAuth(data.user, data.access_token);
+
+    // ✅ Small delay ensures state persistence
+    setTimeout(() => {
+      navigate(
+        data.user.role === 'client'
+          ? '/client/dashboard'
+          : '/admin/dashboard'
+      );
+    }, 100);
+
+  } catch (err) {
+    console.error('Login failed', err);
+  } finally {
+    setLoading(false);
+  }
+};
 };
 
 export default LoginPage;
