@@ -25,13 +25,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    // Payload structure from Supabase JWT
+    const userId = payload.sub;
+
+    // 🔥 FETCH USER FROM DB (CRITICAL FIX)
+    const { data: user, error } = await this.supabase
+      .from('users')
+      .select('id, email, role, firm_id')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
+      this.logger.error('❌ User not found in DB');
+      throw new UnauthorizedException('User not found');
+    }
+
     return {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.user_metadata?.role || 'user',
-      firm_id: payload.user_metadata?.firm_id,
-      aud: payload.aud,
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      firm_id: user.firm_id, // ✅ NOW ALWAYS PRESENT
     };
   }
 }
