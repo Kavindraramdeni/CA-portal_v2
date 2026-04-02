@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, BadRequestException } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { SUPABASE_CLIENT } from '../../config/supabase.module';
@@ -14,6 +14,11 @@ export class TasksService {
   ) {}
 
   async findAll(firmId: string, filter: TaskFilterDto) {
+    // ✅ FIX: Validate firm_id exists
+    if (!firmId || firmId === 'undefined') {
+      throw new BadRequestException('Firm ID is required. User profile may not be loaded correctly.');
+    }
+
     let query = this.supabase
       .from('tasks')
       .select(`
@@ -35,11 +40,21 @@ export class TasksService {
     if (filter.search) query = query.ilike('title', `%${filter.search}%`);
 
     const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    return data;
+    
+    if (error) {
+      console.error('Tasks query error:', error);
+      throw new Error(`Failed to fetch tasks: ${error.message}`);
+    }
+    
+    return data || [];
   }
 
   async findOne(id: string, firmId: string) {
+    // ✅ FIX: Validate firm_id
+    if (!firmId || firmId === 'undefined') {
+      throw new BadRequestException('Firm ID is required');
+    }
+
     const { data, error } = await this.supabase
       .from('tasks')
       .select(`
@@ -55,11 +70,20 @@ export class TasksService {
       .eq('firm_id', firmId)
       .single();
 
-    if (error || !data) throw new NotFoundException('Task not found');
+    if (error || !data) {
+      console.error('Task fetch error:', error);
+      throw new NotFoundException('Task not found');
+    }
+    
     return data;
   }
 
   async create(firmId: string, userId: string, dto: CreateTaskDto) {
+    // ✅ FIX: Validate firm_id
+    if (!firmId || firmId === 'undefined') {
+      throw new BadRequestException('Firm ID is required');
+    }
+
     const { data, error } = await this.supabase
       .from('tasks')
       .insert({
@@ -71,7 +95,10 @@ export class TasksService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error('Task creation error:', error);
+      throw new Error(error.message);
+    }
 
     // Log history
     await this.addHistory(data.id, firmId, null, 'yet_to_start', userId);
@@ -83,6 +110,11 @@ export class TasksService {
   }
 
   async update(id: string, firmId: string, userId: string, dto: UpdateTaskDto) {
+    // ✅ FIX: Validate firm_id
+    if (!firmId || firmId === 'undefined') {
+      throw new BadRequestException('Firm ID is required');
+    }
+
     const existing = await this.findOne(id, firmId);
 
     const { data, error } = await this.supabase
@@ -93,7 +125,10 @@ export class TasksService {
       .select()
       .single();
 
-    if (error) throw new Error(error.message);
+    if (error) {
+      console.error('Task update error:', error);
+      throw new Error(error.message);
+    }
 
     // Log status change history
     if (dto.status && dto.status !== existing.status) {
@@ -111,12 +146,22 @@ export class TasksService {
   }
 
   async remove(id: string, firmId: string) {
+    // ✅ FIX: Validate firm_id
+    if (!firmId || firmId === 'undefined') {
+      throw new BadRequestException('Firm ID is required');
+    }
+
     const { error } = await this.supabase
       .from('tasks')
       .delete()
       .eq('id', id)
       .eq('firm_id', firmId);
-    if (error) throw new Error(error.message);
+    
+    if (error) {
+      console.error('Task deletion error:', error);
+      throw new Error(error.message);
+    }
+    
     return { success: true };
   }
 
@@ -129,25 +174,70 @@ export class TasksService {
   }
 
   async bulkApprove(ids: string[], firmId: string, userId: string) {
+    // ✅ FIX: Validate firm_id
+    if (!firmId || firmId === 'undefined') {
+      throw new BadRequestException('Firm ID is required');
+    }
+
     const results = await Promise.all(ids.map(id => this.approve(id, firmId, userId)));
     return { approved: results.length };
   }
 
   async getHistory(taskId: string, firmId: string) {
-    const { data } = await this.supabase
+    // ✅ FIX: Validate firm_id
+    if (!firmId || firmId === 'undefined') {
+      throw new BadRequestException('Firm ID is required');
+    }
+
+    const { data, error } = await this.supabase
       .from('task_history')
       .select('*, users(name)')
       .eq('task_id', taskId)
       .eq('firm_id', firmId)
       .order('created_at', { ascending: false });
-    return data;
+
+    if (error) {
+      console.error('Task history error:', error);
+      throw new Error(error.message);
+    }
+
+    return data || [];
   }
 
   async getDashboardStats(firmId: string, userId: string, role: string) {
-    const { data: tasks } = await this.supabase
+    // ✅ FIX: Validate firm_id
+    if (!firmId || firmId === 'undefined') {
+      console.warn('⚠️ Dashboard stats called with undefined firm_id');
+      return {
+        total: 0,
+        completed: 0,
+        pending: 0,
+        pending_approval: 0,
+        overdue: 0,
+        due_today: 0,
+        due_this_week: 0,
+        high_risk: 0,
+      };
+    }
+
+    const { data: tasks, error } = await this.supabase
       .from('tasks')
       .select('status, priority, due_date, assigned_to, risk_score')
       .eq('firm_id', firmId);
+
+    if (error) {
+      console.error('Dashboard stats error:', error);
+      return {
+        total: 0,
+        completed: 0,
+        pending: 0,
+        pending_approval: 0,
+        overdue: 0,
+        due_today: 0,
+        due_this_week: 0,
+        high_risk: 0,
+      };
+    }
 
     if (!tasks) return {};
 
@@ -187,7 +277,7 @@ export class TasksService {
     changedBy: string,
     remarks?: string,
   ) {
-    await this.supabase.from('task_history').insert({
+    const { error } = await this.supabase.from('task_history').insert({
       task_id: taskId,
       firm_id: firmId,
       from_status: fromStatus,
@@ -195,5 +285,10 @@ export class TasksService {
       changed_by: changedBy,
       remarks,
     });
+
+    if (error) {
+      console.error('Task history insert error:', error);
+      // Don't throw - history is not critical
+    }
   }
 }
