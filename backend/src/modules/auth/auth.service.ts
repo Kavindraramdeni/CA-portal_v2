@@ -40,7 +40,7 @@ export class AuthService {
       .from('users')
       .select('*, firms(*)')
       .eq('id', data.user.id)
-      .maybeSingle(); // ✅ changed from .single()
+      .maybeSingle();
 
     if (userError) {
       this.logger.error(`DB error: ${userError.message}`);
@@ -56,7 +56,13 @@ export class AuthService {
       throw new UnauthorizedException('Account deactivated');
     }
 
-    this.logger.log(`✅ User profile loaded: ${userData.email}`);
+    // ✅ FIX: Ensure firm_id is included
+    if (!userData.firm_id) {
+      this.logger.error(`❌ User has no firm_id: ${userData.email}`);
+      throw new UnauthorizedException('User is not assigned to a firm');
+    }
+
+    this.logger.log(`✅ User profile loaded: ${userData.email}, firm_id: ${userData.firm_id}`);
 
     return {
       access_token: data.session?.access_token,
@@ -66,7 +72,7 @@ export class AuthService {
         name: userData.name,
         email: userData.email,
         role: userData.role,
-        firm_id: userData.firm_id,
+        firm_id: userData.firm_id, // ✅ CRITICAL: Include firm_id
         firm_name: userData.firms?.name,
         avatar_url: userData.avatar_url,
       },
@@ -97,13 +103,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid OTP');
     }
 
-    const { data: clientData } = await this.supabase
+    const { data: clientData, error: clientError } = await this.supabase
       .from('clients')
-      .select('*, firms(name)')
+      .select('*, firms(name, id)')
       .eq('portal_user_id', data.user.id)
       .maybeSingle();
 
-    if (!clientData) {
+    if (clientError || !clientData) {
+      this.logger.error(`Client fetch failed: ${clientError?.message}`);
       throw new UnauthorizedException('Client not found');
     }
 
@@ -114,6 +121,7 @@ export class AuthService {
         role: 'client',
         client_id: clientData.id,
         name: clientData.name,
+        firm_id: clientData.firms?.id, // ✅ Include firm_id for clients too
         firm_name: clientData.firms?.name,
       },
     };
@@ -146,6 +154,11 @@ export class AuthService {
     if (error) {
       this.logger.error(`Profile fetch failed`);
       throw new UnauthorizedException('Profile fetch failed');
+    }
+
+    if (!data) {
+      this.logger.error(`Profile not found for user: ${userId}`);
+      throw new UnauthorizedException('Profile not found');
     }
 
     return data;
