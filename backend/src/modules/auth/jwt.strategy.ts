@@ -1,8 +1,9 @@
-// jwt.strategy.ts
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, Inject } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { SUPABASE_CLIENT } from '../../config/supabase.module';
+import { SupabaseClient } from '@supabase/supabase-js';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
