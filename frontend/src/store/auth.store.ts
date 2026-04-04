@@ -1,80 +1,72 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User } from '../types';
 
-interface AuthState {
-  user: User | null;
-  token: string | null;
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  firm_id: string; // ✅ ADD THIS
+  avatar_url?: string;
+}
+
+export interface AuthState {
+  user: AuthUser | null;
+  accessToken: string | null;
   refreshToken: string | null;
-  expiresAt: number | null;
-  isAuthenticated: boolean;
-  
-  setAuth: (user: User, token: string, refreshToken?: string, expiresIn?: number) => void;
+  isLoading: boolean;
+  error: string | null;
+  setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => void;
   logout: () => void;
-  updateUser: (u: Partial<User>) => void;
-  isTokenExpired: () => boolean;
-  isTokenExpiringSoon: (minBefore?: number) => boolean;
+  setError: (error: string | null) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
-      token: null,
+      accessToken: null,
       refreshToken: null,
-      expiresAt: null,
-      isAuthenticated: false,
+      isLoading: false,
+      error: null,
 
-      setAuth: (user, token, refreshToken = '', expiresIn = 3600) => {
+      setAuth: (user: AuthUser, accessToken: string, refreshToken: string) => {
+        // ✅ FIX: Store firm_id from user object
         set({
-          user,
-          token,
-          refreshToken: refreshToken || null,
-          expiresAt: Date.now() + expiresIn * 1000, // Convert to milliseconds
-          isAuthenticated: true,
+          user: {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            firm_id: user.firm_id, // ✅ CRITICAL
+            avatar_url: user.avatar_url,
+          },
+          accessToken,
+          refreshToken,
+          error: null,
         });
       },
 
       logout: () => {
         set({
           user: null,
-          token: null,
+          accessToken: null,
           refreshToken: null,
-          expiresAt: null,
-          isAuthenticated: false,
+          error: null,
         });
       },
 
-      updateUser: (u) => {
-        set((s) => ({
-          user: s.user ? { ...s.user, ...u } : null,
-        }));
-      },
-
-      // ✅ Check if token is completely expired
-      isTokenExpired: () => {
-        const state = get();
-        if (!state.expiresAt) return false;
-        return Date.now() > state.expiresAt;
-      },
-
-      // ✅ Check if token expires within X milliseconds (default 5 minutes)
-      isTokenExpiringSoon: (minBefore = 5 * 60 * 1000) => {
-        const state = get();
-        if (!state.expiresAt) return false;
-        return Date.now() > state.expiresAt - minBefore;
+      setError: (error: string | null) => {
+        set({ error });
       },
     }),
     {
-      name: 'ca-portal-auth',
-      // Only persist these keys
+      name: 'auth-storage',
       partialize: (state) => ({
         user: state.user,
-        token: state.token,
+        accessToken: state.accessToken,
         refreshToken: state.refreshToken,
-        expiresAt: state.expiresAt,
-        isAuthenticated: state.isAuthenticated,
       }),
-    },
-  ),
+    }
+  )
 );
