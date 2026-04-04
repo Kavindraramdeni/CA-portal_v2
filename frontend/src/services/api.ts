@@ -40,10 +40,23 @@ export const api = axios.create({
 // ✅ REQUEST INTERCEPTOR: Attach JWT token
 api.interceptors.request.use(
   (config) => {
-    const { token } = useAuthStore.getState();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    const { accessToken, user } = useAuthStore.getState();
+
+// ✅ FIX: Use accessToken not token
+if (accessToken) {
+  config.headers.Authorization = `Bearer ${accessToken}`;
+}
+
+// ✅ FIX: Send firm_id in headers
+if (user?.firm_id) {
+  config.headers['X-Firm-Id'] = user.firm_id;
+  
+  // Also add to query params as backup
+  if (!config.params) {
+    config.params = {};
+  }
+  config.params.firm_id = user.firm_id;
+}
     return config;
   },
   (error) => {
@@ -93,8 +106,8 @@ api.interceptors.response.use(
         const { access_token } = refreshRes.data;
         const { user } = useAuthStore.getState();
 
-        // Update token in store (expiresIn = 1 hour by default)
-        useAuthStore.getState().setAuth(user!, access_token, refreshToken, 3600);
+       // ✅ FIX: Update token in store with accessToken not token
+        useAuthStore.getState().setAuth(user!, access_token, refreshToken);
 
         // Retry original request with new token
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
@@ -153,7 +166,7 @@ export const tasksApi = {
   getAll: (params?: Record<string, string>) =>
     api.get('/tasks', { params }).then(r => r.data),
   getOne: (id: string) => api.get(`/tasks/${id}`).then(r => r.data),
-  getStats: () => api.get('/tasks/stats').then(r => r.data),
+  getStats: () => api.get('/tasks/dashboard-stats').then(r => r.data),
   getHistory: (id: string) => api.get(`/tasks/${id}/history`).then(r => r.data),
   create: (data: any) => api.post('/tasks', data).then(r => r.data),
   update: (id: string, data: any) => api.put(`/tasks/${id}`, data).then(r => r.data),
