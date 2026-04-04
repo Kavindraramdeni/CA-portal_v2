@@ -23,7 +23,7 @@ export class TasksController {
     return this.tasksService.findAll(req.user.firm_id, filter);
   }
 
-  @Get('stats')
+  @Get('dashboard-stats')
   getStats(@Req() req: any) {
     return this.tasksService.getDashboardStats(req.user.firm_id, req.user.id, req.user.role);
   }
